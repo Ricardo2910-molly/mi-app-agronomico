@@ -720,6 +720,12 @@ const FOLIARES = ["Nitrato de calcio foliar","Nitrato de potasio foliar","Quelat
 const COADYUVANTES = ["Aceite agrícola","Surfactante no iónico (ej. Inex-A)","Adherente-esparcidor","Regulador de pH / acidificante",
   "Antiespumante","Siliconado (ej. Silwet, Break-Thru)","Diatomix (silicio / coadyuvante)"];
 const TANQUETA_CAP = ["200 L","500 L","1000 L","2000 L","5000 L","Otro"];
+const UNIDADES_FERT = ["kg/1000L","g/1000L","mL/1000L","g/L","mL/L","kg/ha","g/planta","ppm","g/estañón","mL/estañón"];
+const UNIDADES_FITO = ["mL/L","g/L","mL/1000L","g/1000L","L/ha","kg/ha","mL/estañón","g/estañón"];
+function allUnidades(grupo){
+  const base = grupo==='Fertilización' ? UNIDADES_FERT : UNIDADES_FITO;
+  return [...base, ...unidadesExtra.filter(u=>!base.includes(u))];
+}
 const CULTIVOS = ["Fresa","Tomate","Chile dulce","Flores de corte","Hortalizas","Banano","Piña","Maní","Ochúa","Otro"];
 const SFE_URL = "https://app.sfe.go.cr/SFEInsumos/aspx/Seguridad/Home.aspx";
 const SFE_PROHIBIDOS_URL = "https://www.sfe.go.cr/DocsStatusRegistro/Listado_de_prohibidos.pdf";
@@ -728,7 +734,7 @@ const LOGO_FULL_URI = "data:image/webp;base64,UklGRpypAABXRUJQVlA4WAoAAAAQAAAAcw
 const ASESOR = { nombre:"Ing. Ricardo Barquero Chacón", telefono:"+506 8894-5662", correo:"h7coordinador@gmail.com" };
 
 /* STATE */
-let clientes=[], fincas=[], lotes=[], cosechas=[], visitas=[], planes=[], informesLog=[];
+let clientes=[], fincas=[], lotes=[], cosechas=[], visitas=[], planes=[], informesLog=[], unidadesExtra=[];
 let gps=null, severity='';
 let currentLoteId=null, qaMode=null, qaEditId=null, qaCosechaLoteId=null, planGroup=null, planCtxLoteId=null, editingPlanId=null;
 let ingRows=[], ingCounter=0;
@@ -1965,10 +1971,9 @@ function addIngredientRow(prefill){
       </label>
       <div class="grid2">
         <label class="fld" style="margin-bottom:0"><span class="lbl">Dosis</span><input class="ing-dosis" id="${rid}_dosis" type="number" step="0.01" placeholder="Ej: 2.0" value="${prefill?prefill.dosis:''}"></label>
-        <label class="fld" style="margin-bottom:0"><span class="lbl">Unidad</span>
-          <select class="ing-unidad" id="${rid}_unidad">
-            <option>kg/1000L</option><option>g/1000L</option><option>mL/1000L</option><option>g/L</option><option>mL/L</option><option>kg/ha</option><option>g/planta</option><option>ppm</option>
-          </select>
+        <label class="fld" style="margin-bottom:0;position:relative"><span class="lbl">Unidad</span>
+          <input class="ing-unidad" id="${rid}_unidad" placeholder="Ej: kg/1000L" autocomplete="off" value="${prefill?esc(prefill.unidad||''):''}" oninput="acRender('${rid}_unidad','${rid}_unidad_ac')" onfocus="acShow('${rid}_unidad','${rid}_unidad_ac')" onblur="acHide('${rid}_unidad_ac')">
+          <div class="ac-list" id="${rid}_unidad_ac"></div>
         </label>
       </div>`;
   } else {
@@ -1985,7 +1990,10 @@ function addIngredientRow(prefill){
       </label>
       <div class="grid2">
         <label class="fld" style="margin-bottom:8px"><span class="lbl">Dosis</span><input class="ing-dosis" id="${rid}_dosis" type="number" step="0.01" placeholder="Ej: 1.5" value="${prefill?prefill.dosis:''}"></label>
-        <label class="fld" style="margin-bottom:8px"><span class="lbl">Unidad</span><select class="ing-unidad" id="${rid}_unidad"><option>mL/L</option><option>g/L</option><option>mL/1000L</option><option>g/1000L</option><option>L/ha</option><option>kg/ha</option></select></label>
+        <label class="fld" style="margin-bottom:8px;position:relative"><span class="lbl">Unidad</span>
+          <input class="ing-unidad" id="${rid}_unidad" placeholder="Ej: mL/L" autocomplete="off" value="${prefill?esc(prefill.unidad||''):''}" oninput="acRender('${rid}_unidad','${rid}_unidad_ac')" onfocus="acShow('${rid}_unidad','${rid}_unidad_ac')" onblur="acHide('${rid}_unidad_ac')">
+          <div class="ac-list" id="${rid}_unidad_ac"></div>
+        </label>
       </div>
       <div class="grid2">
         <label class="fld" style="margin-bottom:0"><span class="lbl">Carencia (si la confirmaste)</span><input class="ing-carencia" id="${rid}_car" placeholder="Ej: 7 días" value="${prefill?esc(prefill.carencia||''):''}"></label>
@@ -1994,8 +2002,8 @@ function addIngredientRow(prefill){
   }
   document.getElementById('ingContainer').appendChild(wrap);
   fillIngProduct(rid);
+  acSetOptions(rid+'_unidad_ac', allUnidades(planGroup));
   if(prefill){
-    if(prefill.unidad) document.getElementById(rid+'_unidad').value=prefill.unidad;
     if(prefill.categoria) document.getElementById(rid+'_cat').value=prefill.categoria;
     if(prefill.restringido) document.getElementById(rid+'_rest').value=prefill.restringido;
   }
@@ -2026,7 +2034,12 @@ async function submitPlanItem(){
     if(!prod) return toast('Falta el nombre de algún producto en la mezcla');
     const dosis=document.getElementById(rid+'_dosis').value.trim();
     if(!dosis) return toast('Falta la dosis de algún producto en la mezcla');
-    const unidad=document.getElementById(rid+'_unidad').value;
+    const unidad=document.getElementById(rid+'_unidad').value.trim();
+    if(!unidad) return toast('Falta la unidad de algún producto en la mezcla');
+    if(!allUnidades(planGroup).includes(unidad)){
+      unidadesExtra.push(unidad);
+      await store.set('unidadesExtra', unidadesExtra);
+    }
     const ing={producto:prod, dosis, unidad};
     if(planGroup!=='Fertilización'){
       ing.categoria=document.getElementById(rid+'_cat').value;
@@ -2090,7 +2103,7 @@ function acPick(inputId, dlId, el){
 function acShow(inputId, dlId){ acRender(inputId, dlId); }
 function acHide(dlId){ setTimeout(()=>{ const box=document.getElementById(dlId); if(box) box.classList.remove('show'); }, 150); }
 function exportData(){
-  const blob=new Blob([JSON.stringify({clientes,fincas,lotes,cosechas,visitas,planes,informesLog},null,2)],{type:'application/json'});
+  const blob=new Blob([JSON.stringify({clientes,fincas,lotes,cosechas,visitas,planes,informesLog,unidadesExtra},null,2)],{type:'application/json'});
   const a=document.createElement('a'); a.href=URL.createObjectURL(blob);
   a.download='bitacora-campo-'+new Date().toISOString().slice(0,10)+'.json';
   document.body.appendChild(a); a.click(); a.remove(); toast('Datos exportados');
@@ -2118,6 +2131,7 @@ function importData(event){
       clientes=data.clientes||[]; fincas=data.fincas||[]; lotes=data.lotes||[];
       cosechas=data.cosechas||[]; planes=data.planes||[]; informesLog=data.informesLog||[];
       visitas=(data.visitas||[]).slice().sort((a,b)=>new Date(b.createdAt)-new Date(a.createdAt));
+      unidadesExtra=data.unidadesExtra||[]; await store.set('unidadesExtra', unidadesExtra);
       refreshPickers(); renderInicio();
       toast('Datos importados — '+visitas.length+' visitas cargadas');
       goto('inicio');
@@ -2141,6 +2155,7 @@ async function loadAll(prefix){
   cosechas=await loadAll('cosecha:');
   planes=await loadAll('plan:');
   informesLog=await loadAll('log:');
+  unidadesExtra=(await store.get('unidadesExtra'))||[];
   visitas=(await loadAll('visita:')).sort((a,b)=>new Date(b.createdAt)-new Date(a.createdAt));
   refreshPickers();
   renderInicio();
