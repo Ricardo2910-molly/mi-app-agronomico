@@ -1402,7 +1402,7 @@ function buildReportDoc(state, preview){
 
   return `<div class="rp-doc">
     <div style="display:flex;align-items:center;gap:9px;margin-bottom:10px">
-      <img src="${LOGO_ICON_URI}" alt="Logo" style="width:38px;height:auto;flex:none;display:inline-block">
+      <img src="${LOGO_ICON_URI}" alt="Logo" style="width:38px;height:23px;flex:none;display:inline-block">
       <span style="font-family:'Archivo',sans-serif;font-weight:800;font-size:12.5px;color:var(--plum)">${ASESOR.nombre} <span style="font-weight:600;color:var(--muted);font-family:'Inter',sans-serif">· Ing. Agrónomo</span></span>
     </div>
     <h1>📋 Informe de Visita</h1>
@@ -1413,7 +1413,7 @@ function buildReportDoc(state, preview){
     ${lotesHtml || '<p style="color:#777">Sin lotes incluidos en este informe.</p>'}
     ${obsHtml}
     <div class="rp-foot" style="display:flex;align-items:center;gap:8px">
-      <img src="${LOGO_ICON_URI}" alt="Logo" style="width:26px;height:auto;flex:none;display:inline-block">
+      <img src="${LOGO_ICON_URI}" alt="Logo" style="width:26px;height:16px;flex:none;display:inline-block">
       <span><b style="color:var(--ink)">${ASESOR.nombre}</b> — Ingeniero Agrónomo · ${ASESOR.telefono} · ${ASESOR.correo}<br>Informe generado el ${new Date().toLocaleDateString('es-CR')}.</span>
     </div>
   </div>`;
@@ -1491,11 +1491,21 @@ async function logInformeGenerado(){
 function reportFileName(){
   return `Informe_${(reportState.fincaNombre||'visita').replace(/[^a-zA-Z0-9]+/g,'_')}_${reportState.fecha||''}.pdf`;
 }
+async function waitForImages(el){
+  const imgs=[...el.querySelectorAll('img')];
+  await Promise.all(imgs.map(img=>{
+    if(img.complete && img.naturalWidth>0) return Promise.resolve();
+    if(img.decode) return img.decode().catch(()=>{});
+    return new Promise(res=>{ img.onload=res; img.onerror=res; });
+  }));
+  // dos frames de pintado para que el layout se asiente después de que las imágenes reservan su espacio real
+  await new Promise(res=>requestAnimationFrame(()=>requestAnimationFrame(res)));
+}
 async function generatePdfBlob(){
   if(!window.html2canvas || !window.jspdf) throw new Error('Librerías de PDF no disponibles (sin conexión)');
   const el=document.getElementById('reportPrint');
   el.style.cssText='display:block;position:fixed;left:-9999px;top:0;width:794px;background:#fff;z-index:-1';
-  await new Promise(r=>setTimeout(r,60));
+  await waitForImages(el);
   const canvas=await window.html2canvas(el, {scale:2, backgroundColor:'#ffffff', useCORS:true});
   el.style.cssText='display:none';
   const imgData=canvas.toDataURL('image/jpeg',0.92);
@@ -1508,7 +1518,7 @@ async function generatePdfBlob(){
   let heightLeft=imgHeight, position=0;
   pdf.addImage(imgData,'JPEG',0,position,imgWidth,imgHeight);
   heightLeft-=pageHeight;
-  while(heightLeft>0){
+  while(heightLeft>1){
     position=heightLeft-imgHeight;
     pdf.addPage();
     pdf.addImage(imgData,'JPEG',0,position,imgWidth,imgHeight);
