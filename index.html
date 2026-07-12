@@ -1364,6 +1364,55 @@ function computeKpiHtml(state){
   const prevKg = cs.filter(c=>inRange(c.fecha,13,7)).reduce((s,c)=>s+(parseFloat(c.kg)||0),0);
   return `<span>📈 Producción 7 días: <b>${Math.round(currKg).toLocaleString('es-CR')} kg</b></span><span>· Semana previa: <b>${Math.round(prevKg).toLocaleString('es-CR')} kg</b></span>`;
 }
+function buildReportChunks(state){
+  const d=new Date(state.createdAt);
+  const fecha=d.toLocaleDateString('es-CR',{day:'2-digit',month:'long',year:'numeric'});
+  const sevIcon={Leve:'🟢 Leve',Moderada:'🟡 Moderada',Severa:'🔴 Severa'};
+
+  const kpiInner = computeKpiHtml(state);
+  const kpiHtml = (state.showKpi && kpiInner) ? `<div class="rp-block rp-kpi">${kpiInner}${(state.plantasProduccion||state.plantasSiembra)?`<span>🌱 Plantas en producción: <b>${esc(state.plantasProduccion||'—')}</b> · en siembra: <b>${esc(state.plantasSiembra||'—')}</b></span>`:''}</div>` : '';
+  const novHtml = state.showNovedades ? `<div class="rp-block rp-novedades">📣 <b>Novedades desde la última visita:</b><br>${state.novedades?esc(state.novedades):'Sin novedades.'}</div>` : '';
+  const includedLotes = state.lotes.filter(lr=>lr.include);
+
+  const headerChunk = `
+    <div style="display:flex;align-items:center;gap:9px;margin-bottom:10px">
+      <img src="${LOGO_ICON_URI}" alt="Logo" style="width:38px;height:23px;flex:none;display:inline-block">
+      <span style="font-family:'Archivo',sans-serif;font-weight:800;font-size:12.5px;color:var(--plum)">${ASESOR.nombre} <span style="font-weight:600;color:var(--muted);font-family:'Inter',sans-serif">· Ing. Agrónomo</span></span>
+    </div>
+    <h1>📋 Informe de Visita</h1>
+    <div class="rp-sub">${esc(state.clienteNombre||'')} · ${esc(state.fincaNombre||'')} · ${fecha}</div>
+    ${kpiHtml}
+    ${novHtml}
+    <h2>Lotes revisados (${includedLotes.length})</h2>
+    ${includedLotes.length ? '' : '<p style="color:#777">Sin lotes incluidos en este informe.</p>'}`;
+
+  const loteChunks = includedLotes.map(lr=>{
+    const findingsHtml = lr.showFotos && lr.hallazgos.length ? lr.hallazgos.map(h=>`
+      <div class="rp-finding">
+        <img src="${h.foto}">
+        <div class="ftxt"><span class="fnum">Foto ${h.numero}</span> — ${esc(h.observacion||'(sin observación)')}<br>
+        <span class="fgps">${h.gps?h.gps.lat.toFixed(5)+', '+h.gps.lng.toFixed(5):'sin GPS'}</span></div>
+      </div>`).join('') : (lr.hallazgos.length?'':'<p style="color:#777;font-size:11px">Sin hallazgos — lote sin problemas reportados.</p>');
+    const planHtml = lr.showPlan ? (lr.planItems.length ? lr.planItems.map(reportPlanTableHtml).join('') : `<p style="color:#777;font-size:11px">Sin aplicaciones registradas para este lote en esta visita.</p>`) : '';
+    return `<div class="rp-block rp-lote">
+      <h3>🌱 ${esc(lr.loteNombre)}${lr.cultivo?' — '+esc(lr.cultivo):''}</h3>
+      <span class="rp-sev rp-sev-${lr.severidad||'Leve'}">${sevIcon[lr.severidad]||'Severidad no indicada'}</span>
+      <span class="rp-label2">¿Qué encontramos?</span>
+      ${findingsHtml}
+      <span class="rp-label2">¿Qué vamos a hacer?</span>
+      ${planHtml}
+    </div>`;
+  });
+
+  const footerChunk = `
+    ${state.showObs ? `<div class="rp-block"><h2>✅ Observaciones finales</h2><p>${state.observacionesFinales?esc(state.observacionesFinales):'Sin observaciones adicionales.'}</p></div>` : ''}
+    <div class="rp-foot" style="display:flex;align-items:center;gap:8px">
+      <img src="${LOGO_ICON_URI}" alt="Logo" style="width:26px;height:16px;flex:none;display:inline-block">
+      <span><b style="color:var(--ink)">${ASESOR.nombre}</b> — Ingeniero Agrónomo · ${ASESOR.telefono} · ${ASESOR.correo}<br>Informe generado el ${new Date().toLocaleDateString('es-CR')}.</span>
+    </div>`;
+
+  return [headerChunk, ...loteChunks, footerChunk];
+}
 function buildReportDoc(state, preview){
   const d=new Date(state.createdAt);
   const fecha=d.toLocaleDateString('es-CR',{day:'2-digit',month:'long',year:'numeric'});
@@ -1501,34 +1550,57 @@ async function waitForImages(el){
   // dos frames de pintado para que el layout se asiente después de que las imágenes reservan su espacio real
   await new Promise(res=>requestAnimationFrame(()=>requestAnimationFrame(res)));
 }
-async function generatePdfBlob(){
-  if(!window.html2canvas || !window.jspdf) throw new Error('Librerías de PDF no disponibles (sin conexión)');
+async function renderChunkToCanvas(html){
   const el=document.getElementById('reportPrint');
   el.style.cssText='display:block;position:fixed;left:-9999px;top:0;width:794px;background:#fff;z-index:-1';
+  el.innerHTML=`<div class="rp-doc">${html}</div>`;
   await waitForImages(el);
   const canvas=await window.html2canvas(el, {scale:2, backgroundColor:'#ffffff', useCORS:true});
   el.style.cssText='display:none';
+  return canvas;
+}
+function addSlicedCanvas(pdf, canvas, imgWidth, pageWidth, pageHeight, startY){
+  // usado solo cuando un bloque individual (un lote con muchas fotos) es más alto que una página completa
+  const imgHeight=canvas.height*imgWidth/canvas.width;
   const imgData=canvas.toDataURL('image/jpeg',0.92);
+  let heightLeft=imgHeight, position=startY;
+  pdf.addImage(imgData,'JPEG',0,position,imgWidth,imgHeight);
+  heightLeft-=(pageHeight-startY);
+  while(heightLeft>1){
+    pdf.addPage();
+    position=heightLeft-imgHeight;
+    pdf.addImage(imgData,'JPEG',0,position,imgWidth,imgHeight);
+    heightLeft-=pageHeight;
+  }
+}
+async function generatePdfBlob(){
+  if(!window.html2canvas || !window.jspdf) throw new Error('Librerías de PDF no disponibles (sin conexión)');
+  const chunks=buildReportChunks(reportState);
   const { jsPDF }=window.jspdf;
   const pdf=new jsPDF('p','pt','a4');
   const pageWidth=pdf.internal.pageSize.getWidth();
   const pageHeight=pdf.internal.pageSize.getHeight();
-  const imgWidth=pageWidth;
-  const imgHeight=canvas.height*imgWidth/canvas.width;
-  let heightLeft=imgHeight, position=0;
-  pdf.addImage(imgData,'JPEG',0,position,imgWidth,imgHeight);
-  heightLeft-=pageHeight;
-  while(heightLeft>1){
-    position=heightLeft-imgHeight;
-    pdf.addPage();
-    pdf.addImage(imgData,'JPEG',0,position,imgWidth,imgHeight);
-    heightLeft-=pageHeight;
+  let y=0, isFirstBlockOnPage=true;
+  for(const chunkHtml of chunks){
+    const canvas=await renderChunkToCanvas(chunkHtml);
+    const imgWidth=pageWidth;
+    const imgHeight=canvas.height*imgWidth/canvas.width;
+    if(imgHeight>pageHeight){
+      // este bloque solo (ej. un lote con muchas fotos) no cabe entero en una página: lo partimos, pero nunca junto a otro bloque
+      if(!isFirstBlockOnPage){ pdf.addPage(); y=0; }
+      addSlicedCanvas(pdf, canvas, imgWidth, pageWidth, pageHeight, y);
+      pdf.addPage(); y=0; isFirstBlockOnPage=true;
+      continue;
+    }
+    if(!isFirstBlockOnPage && (y+imgHeight)>pageHeight){ pdf.addPage(); y=0; isFirstBlockOnPage=true; }
+    const imgData=canvas.toDataURL('image/jpeg',0.92);
+    pdf.addImage(imgData,'JPEG',0,y,imgWidth,imgHeight);
+    y+=imgHeight; isFirstBlockOnPage=false;
   }
   return pdf.output('blob');
 }
 async function downloadReportPdf(){
   const id=await ensureReportPersisted(); if(!id) return;
-  document.getElementById('reportPrint').innerHTML = buildReportDoc(reportState, false);
   await logInformeGenerado();
   try{
     const blob=await generatePdfBlob();
@@ -1539,13 +1611,13 @@ async function downloadReportPdf(){
     toast('PDF descargado');
   }catch(e){
     toast('Usando impresión del navegador para el PDF');
+    document.getElementById('reportPrint').innerHTML = buildReportDoc(reportState, false);
     window.print();
   }
   closeModal('reportPreviewModal');
 }
 async function shareReportWhatsApp(){
   const id=await ensureReportPersisted(); if(!id) return;
-  document.getElementById('reportPrint').innerHTML = buildReportDoc(reportState, false);
   await logInformeGenerado();
   const cliente=clientes.find(c=>c.id===reportState.clienteId);
   const fileName=reportFileName();
@@ -1565,6 +1637,7 @@ async function shareReportWhatsApp(){
     document.body.appendChild(a); a.click(); a.remove();
     setTimeout(()=>URL.revokeObjectURL(url),8000);
   } else {
+    document.getElementById('reportPrint').innerHTML = buildReportDoc(reportState, false);
     window.print();
   }
   const numeros=[];
