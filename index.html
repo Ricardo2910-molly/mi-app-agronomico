@@ -167,11 +167,12 @@
   .rp-doc .rp-sev-Severa{background:#FBDCDA;color:#8a2c14}
   .rp-doc p{font-size:12.5px;line-height:1.42;white-space:pre-wrap;margin:3px 0}
   .rp-doc .rp-label2{font-weight:800;color:#2E0F42;font-size:10.5px;text-transform:uppercase;letter-spacing:.3px;display:block;margin-top:6px}
-  .rp-doc .rp-finding{display:flex;gap:7px;margin:4px 0;align-items:flex-start}
-  .rp-doc .rp-finding img{width:52px;height:52px;object-fit:cover;border-radius:5px;border:1px solid #bbb;flex:none}
-  .rp-doc .rp-finding .ftxt{font-size:11.5px}
-  .rp-doc .rp-finding .fnum{font-weight:800;color:#2E0F42}
-  .rp-doc .rp-finding .fgps{font-family:'Space Mono',monospace;font-size:9px;color:#888}
+  .rp-doc .rp-findings-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin:6px 0}
+  .rp-doc .rp-finding-card{background:#fff;border:1.3px solid #ccc;border-radius:8px;overflow:hidden;page-break-inside:avoid}
+  .rp-doc .rp-finding-card img{width:100%;height:190px;object-fit:cover;display:block}
+  .rp-doc .rp-finding-card .ftxt{font-size:11px;padding:6px 8px}
+  .rp-doc .rp-finding-card .fnum{font-weight:800;color:#2E0F42;display:block;margin-bottom:2px}
+  .rp-doc .rp-finding-card .fgps{font-family:'Space Mono',monospace;font-size:9px;color:#888;display:block;margin-top:3px}
   .rp-doc table.rp-table{width:100%;border-collapse:collapse;margin:5px 0 3px;font-size:11.5px;border:1.5px solid #444}
   .rp-doc table.rp-table th,.rp-doc table.rp-table td{border:1px solid #999;padding:4px 7px}
   .rp-doc table.rp-table th{text-align:left;color:#fff;font-family:'Archivo',sans-serif;font-weight:700;font-size:10.5px;letter-spacing:.2px}
@@ -1276,6 +1277,17 @@ async function submitEditVisita(){
 
 /* INFORME (PDF) — reportState es la única fuente de verdad: sirve tanto para una visita
    ya guardada como para la sesión en curso (draft) todavía no guardada. */
+function buildFindingsHtml(lr){
+  if(!lr.showFotos || !lr.hallazgos.length){
+    return lr.hallazgos.length ? '' : '<p style="color:#777;font-size:11px">Sin hallazgos — lote sin problemas reportados.</p>';
+  }
+  return `<div class="rp-findings-grid">${lr.hallazgos.map(h=>`
+    <div class="rp-finding-card">
+      <img src="${h.foto}">
+      <div class="ftxt"><span class="fnum">Foto ${h.numero}</span>${esc(h.observacion||'(sin observación)')}
+      <span class="fgps">${h.gps?h.gps.lat.toFixed(5)+', '+h.gps.lng.toFixed(5):'sin GPS'}</span></div>
+    </div>`).join('')}</div>`;
+}
 function reportPlanTableHtml(p){
   let baseTxt='';
   if(p.grupo==='Fertilización'){
@@ -1387,12 +1399,7 @@ function buildReportChunks(state){
     ${includedLotes.length ? '' : '<p style="color:#777">Sin lotes incluidos en este informe.</p>'}`;
 
   const loteChunks = includedLotes.map(lr=>{
-    const findingsHtml = lr.showFotos && lr.hallazgos.length ? lr.hallazgos.map(h=>`
-      <div class="rp-finding">
-        <img src="${h.foto}">
-        <div class="ftxt"><span class="fnum">Foto ${h.numero}</span> — ${esc(h.observacion||'(sin observación)')}<br>
-        <span class="fgps">${h.gps?h.gps.lat.toFixed(5)+', '+h.gps.lng.toFixed(5):'sin GPS'}</span></div>
-      </div>`).join('') : (lr.hallazgos.length?'':'<p style="color:#777;font-size:11px">Sin hallazgos — lote sin problemas reportados.</p>');
+    const findingsHtml = buildFindingsHtml(lr);
     const planHtml = lr.showPlan ? (lr.planItems.length ? lr.planItems.map(reportPlanTableHtml).join('') : `<p style="color:#777;font-size:11px">Sin aplicaciones registradas para este lote en esta visita.</p>`) : '';
     return `<div class="rp-block rp-lote">
       <h3>🌱 ${esc(lr.loteNombre)}${lr.cultivo?' — '+esc(lr.cultivo):''}</h3>
@@ -1425,12 +1432,7 @@ function buildReportDoc(state, preview){
   const novHtml = state.showNovedades ? `<div class="rp-block rp-novedades">${rm('novedades')}📣 <b>Novedades desde la última visita:</b><br>${preview?`<textarea oninput="reportState.novedades=this.value">${esc(state.novedades)}</textarea>`:(state.novedades?esc(state.novedades):'Sin novedades.')}</div>` : '';
 
   const lotesHtml = state.lotes.filter(lr=>lr.include).map(lr=>{
-    const findingsHtml = lr.showFotos && lr.hallazgos.length ? lr.hallazgos.map(h=>`
-      <div class="rp-finding">
-        <img src="${h.foto}">
-        <div class="ftxt"><span class="fnum">Foto ${h.numero}</span> — ${esc(h.observacion||'(sin observación)')}<br>
-        <span class="fgps">${h.gps?h.gps.lat.toFixed(5)+', '+h.gps.lng.toFixed(5):'sin GPS'}</span></div>
-      </div>`).join('') : (lr.hallazgos.length?'':'<p style="color:#777;font-size:11px">Sin hallazgos — lote sin problemas reportados.</p>');
+    const findingsHtml = buildFindingsHtml(lr);
     const planHtml = lr.showPlan ? (lr.planItems.length ? lr.planItems.map(reportPlanTableHtml).join('') : `<p style="color:#777;font-size:11px">Sin aplicaciones registradas para este lote en esta visita.</p>`) : '';
     return `<div class="rp-block rp-lote">
       ${rm('lote',lr.idx)}
