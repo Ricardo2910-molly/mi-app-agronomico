@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <!-- Instalación en iPhone: "Añadir a pantalla de inicio" desde Safari usa estas etiquetas -->
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
@@ -25,7 +25,7 @@
     --radius:16px; --shadow:0 1px 0 rgba(27,16,36,.06),0 8px 22px -14px rgba(27,16,36,.5);
   }
   *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-  html,body{margin:0;padding:0}
+  html,body{margin:0;padding:0;overflow-x:hidden;max-width:100%}
   body{font-family:'Inter',system-ui,sans-serif;color:var(--ink);background-color:var(--cloud);
     background-image:radial-gradient(circle at 12% 0%, rgba(156,43,207,.10), transparent 45%),radial-gradient(circle at 88% 18%, rgba(240,165,0,.10), transparent 40%);
     background-attachment:fixed;min-height:100vh;line-height:1.45;-webkit-font-smoothing:antialiased}
@@ -73,7 +73,7 @@
 
   label.fld{display:block;margin-bottom:12px}
   label.fld .lbl{font-family:'Archivo',sans-serif;font-weight:600;font-size:11.5px;letter-spacing:.4px;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:6px}
-  input,select,textarea{width:100%;font-family:'Inter',sans-serif;font-size:14.5px;color:var(--ink);background:var(--surface);
+  input,select,textarea{width:100%;font-family:'Inter',sans-serif;font-size:16px;color:var(--ink);background:var(--surface);
     border:1.5px solid var(--line-strong);border-radius:11px;padding:11px 12px;outline:none;transition:border-color .15s,box-shadow .15s}
   input:focus,select:focus,textarea:focus{border-color:var(--plum);box-shadow:0 0 0 3px rgba(76,29,107,.16)}
   textarea{resize:vertical;min-height:70px;line-height:1.5}
@@ -103,7 +103,7 @@
   .hallazgo .body{flex:1;min-width:0}
   .hallazgo .num{font-family:'Archivo',sans-serif;font-weight:800;font-size:11.5px;color:var(--plum-deep);display:flex;align-items:center;gap:6px;margin-bottom:4px}
   .hallazgo .num .gpstxt{font-family:'Space Mono',monospace;font-weight:400;font-size:9.5px;color:var(--muted)}
-  .hallazgo textarea{min-height:44px;font-size:13px;padding:7px 9px}
+  .hallazgo textarea{min-height:44px;font-size:16px;padding:7px 9px}
   .hallazgo .rm{background:none;border:none;color:var(--red);font-size:11px;font-weight:700;font-family:'Archivo',sans-serif;cursor:pointer;margin-top:4px;padding:0}
 
   .picker{display:flex;flex-direction:column;gap:10px}
@@ -132,7 +132,7 @@
   .draft-item button{background:none;border:none;color:var(--red);font-size:12px;font-weight:700;font-family:'Archivo',sans-serif;cursor:pointer}
 
   .filters{display:flex;gap:8px;margin-bottom:12px;overflow-x:auto;padding-bottom:2px}
-  .filters select{width:auto;flex:none;font-size:12.5px;padding:8px 30px 8px 11px}
+  .filters select{width:auto;flex:none;font-size:16px;padding:8px 26px 8px 11px}
   .visit{background:var(--card);border:1px solid var(--line-strong);border-radius:var(--radius);box-shadow:var(--shadow);padding:14px 14px 14px 18px;margin-bottom:12px;position:relative;overflow:hidden}
   .visit::before{content:"";position:absolute;left:8px;top:12px;bottom:12px;width:2px;background:var(--red);opacity:.5;border-radius:2px}
   .visit-top{display:flex;align-items:baseline;gap:9px;margin-bottom:7px;flex-wrap:wrap}
@@ -187,7 +187,7 @@
   .rp-doc .rp-basemix{display:inline-block;background:#EDE0F7;color:#2E0F42;font-weight:700;font-size:10.5px;padding:2px 8px;border-radius:14px;margin-bottom:4px}
   .rp-doc .rp-foot{margin-top:10px;font-size:9px;color:#888;border-top:1px solid #ccc;padding-top:5px}
   .rp-doc .rp-novedades{background:#FCE9BA;border:1.5px solid #E0A400;border-radius:8px;padding:7px 10px;margin-bottom:8px;font-size:12px}
-  .rp-doc textarea{background:#fff;border:1.5px dashed #999;font-size:12.5px;min-height:56px}
+  .rp-doc textarea{background:#fff;border:1.5px dashed #999;font-size:16px;min-height:56px}
   .rp-rm{position:absolute;top:6px;right:6px;background:#E1383A;color:#fff;border:none;border-radius:6px;
     font-family:'Archivo',sans-serif;font-weight:700;font-size:9.5px;padding:3px 7px;cursor:pointer;z-index:2}
   .rp-rm-inline{background:none;border:1px dashed #E1383A;color:#E1383A;border-radius:6px;font-family:'Archivo',sans-serif;
@@ -272,6 +272,17 @@
   .inicio-card .ic{width:26px;height:26px}
   .inicio-card h4{font-family:'Archivo',sans-serif;font-weight:800;font-size:14.5px;margin:10px 0 2px}
   .inicio-card p{font-size:10.5px;margin:0;opacity:.85;line-height:1.35}
+
+  /* Autocompletar táctil (reemplaza datalist, que no funciona bien en Safari iOS) */
+  .ac-list{position:absolute;left:0;right:0;top:100%;z-index:40;background:var(--surface);
+    border:1.5px solid var(--line-strong);border-top:none;border-radius:0 0 11px 11px;
+    max-height:230px;overflow-y:auto;-webkit-overflow-scrolling:touch;
+    box-shadow:0 14px 26px -10px rgba(27,16,36,.4);display:none}
+  .ac-list.show{display:block}
+  .ac-item{padding:12px 13px;font-size:15px;border-bottom:1px solid var(--line);cursor:pointer}
+  .ac-item:last-child{border-bottom:none}
+  .ac-item:active{background:var(--cloud)}
+  .ac-empty{padding:11px 13px;font-size:12.5px;color:var(--muted)}
 
   .empty{text-align:center;padding:44px 22px;color:var(--muted)}
   .empty .ico{font-size:32px;opacity:.5}
@@ -442,15 +453,23 @@
         <select id="hf_finca" onchange="renderHist()"><option value="">Todas las fincas</option></select>
       </div>
       <div class="filters">
-        <input type="date" id="hf_desde" onchange="renderHist()" style="width:auto;flex:1;font-size:12.5px;padding:8px 10px">
+        <input type="date" id="hf_desde" onchange="renderHist()" style="width:auto;flex:1;font-size:16px;padding:8px 10px">
         <span style="align-self:center;font-size:11px;color:var(--muted)">hasta</span>
-        <input type="date" id="hf_hasta" onchange="renderHist()" style="width:auto;flex:1;font-size:12.5px;padding:8px 10px">
+        <input type="date" id="hf_hasta" onchange="renderHist()" style="width:auto;flex:1;font-size:16px;padding:8px 10px">
         <button class="btn-ghost btn-sm" onclick="clearHistFilters()">Limpiar</button>
       </div>
-      <button class="btn btn-field" onclick="exportData()" style="margin-bottom:14px">
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
-        Exportar todos los datos (.json)
-      </button>
+      <div class="grid2" style="margin-bottom:14px">
+        <button class="btn btn-field" onclick="exportData()">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+          Exportar (.json)
+        </button>
+        <button class="btn btn-sky" onclick="document.getElementById('importFile').click()">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
+          Importar (.json)
+        </button>
+      </div>
+      <input type="file" id="importFile" accept="application/json" hidden onchange="importData(event)">
+      <p class="hint" style="margin-top:-10px">Para llevar los mismos datos entre el teléfono y la computadora: exportá en uno, pasate el archivo (correo, AirDrop, etc.) y "Importar" en el otro. Esto reemplaza todos los datos de este dispositivo por los del archivo — exportá primero como respaldo si no estás seguro.</p>
       <div id="histList"></div>
     </section>
 
@@ -561,7 +580,7 @@
   <div class="modal">
     <h3>Consulta para ChatGPT</h3>
     <p class="hint2">Copiada al portapapeles. Abrí ChatGPT, pegala y adjuntá la foto.</p>
-    <textarea id="aiText" readonly style="min-height:130px;font-size:13px;background:var(--surface)"></textarea>
+    <textarea id="aiText" readonly style="min-height:130px;font-size:16px;background:var(--surface)"></textarea>
     <div class="modal-actions">
       <button class="btn-ghost" onclick="copyAI()" style="flex:1">Copiar de nuevo</button>
       <a class="btn btn-ai" id="aiOpen" href="https://chatgpt.com/" target="_blank" rel="noopener" style="flex:1;text-decoration:none">Abrir ChatGPT</a>
@@ -635,7 +654,6 @@
 
 <!-- Contenedor de informe: invisible en pantalla, se muestra solo al imprimir/guardar como PDF -->
 <div id="reportPrint"></div>
-<datalist id="dl_cultivos"></datalist>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -897,7 +915,7 @@ function openQuickAdd(mode, editItem, loteIdOverride){
     hint.textContent='Se crea dentro de la finca seleccionada.';
     f.innerHTML=`<label class="fld"><span class="lbl">Nombre del lote <span class="req">*</span></span><input id="qa_nombre" placeholder="Ej: Lote 3" value="${editItem?esc(editItem.nombre):''}"></label>
       <div class="grid2">
-        <label class="fld"><span class="lbl">Cultivo</span><input id="qa_cultivo" list="dl_cultivos" placeholder="Ej: Fresa" autocomplete="off" value="${editItem?esc(editItem.cultivo||''):''}"></label>
+        <label class="fld" style="position:relative"><span class="lbl">Cultivo</span><input id="qa_cultivo" placeholder="Ej: Fresa" autocomplete="off" value="${editItem?esc(editItem.cultivo||''):''}" oninput="acRender('qa_cultivo','qa_cultivo_ac')" onfocus="acShow('qa_cultivo','qa_cultivo_ac')" onblur="acHide('qa_cultivo_ac')"><div class="ac-list" id="qa_cultivo_ac"></div></label>
         <label class="fld"><span class="lbl">Área (ha)</span><input id="qa_area" type="number" step="0.01" placeholder="0.5" value="${editItem&&editItem.areaHa?editItem.areaHa:''}"></label>
       </div>
       <label class="fld"><span class="lbl">Variedad</span><input id="qa_variedad" placeholder="Ej: San Andreas" value="${editItem?esc(editItem.variedad||''):''}"></label>`;
@@ -1941,9 +1959,9 @@ function addIngredientRow(prefill){
   if(planGroup==='Fertilización'){
     wrap.innerHTML=`
       <button type="button" onclick="removeIngRow('${rid}')" style="position:absolute;top:8px;right:8px;background:none;border:none;color:var(--red);font-size:16px;cursor:pointer">×</button>
-      <label class="fld" style="margin-bottom:8px"><span class="lbl">Producto (escribí o elegí de la lista)</span>
-        <input class="ing-producto" id="${rid}_prod" list="${rid}_dl" placeholder="Ej: Nitrato de calcio soluble" autocomplete="off" value="${prefill?esc(prefill.producto):''}">
-        <datalist id="${rid}_dl"></datalist>
+      <label class="fld" style="margin-bottom:8px;position:relative"><span class="lbl">Producto (escribí o tocá para ver opciones)</span>
+        <input class="ing-producto" id="${rid}_prod" placeholder="Ej: Nitrato de calcio soluble" autocomplete="off" value="${prefill?esc(prefill.producto):''}" oninput="acRender('${rid}_prod','${rid}_dl')" onfocus="acShow('${rid}_prod','${rid}_dl')" onblur="acHide('${rid}_dl')">
+        <div class="ac-list" id="${rid}_dl"></div>
       </label>
       <div class="grid2">
         <label class="fld" style="margin-bottom:0"><span class="lbl">Dosis</span><input class="ing-dosis" id="${rid}_dosis" type="number" step="0.01" placeholder="Ej: 2.0" value="${prefill?prefill.dosis:''}"></label>
@@ -1961,9 +1979,9 @@ function addIngredientRow(prefill){
           <option>Fungicida</option><option>Insecticida</option><option>Acaricida</option><option>Fertilizante foliar</option><option>Coadyuvante</option>
         </select>
       </label>
-      <label class="fld" style="margin-bottom:8px"><span class="lbl">Producto / ingrediente activo (escribí o elegí)</span>
-        <input class="ing-producto" id="${rid}_prod" list="${rid}_dl" placeholder="Ej: Azoxistrobina" autocomplete="off" value="${prefill?esc(prefill.producto):''}">
-        <datalist id="${rid}_dl"></datalist>
+      <label class="fld" style="margin-bottom:8px;position:relative"><span class="lbl">Producto / ingrediente activo (escribí o elegí)</span>
+        <input class="ing-producto" id="${rid}_prod" placeholder="Ej: Azoxistrobina" autocomplete="off" value="${prefill?esc(prefill.producto):''}" oninput="acRender('${rid}_prod','${rid}_dl')" onfocus="acShow('${rid}_prod','${rid}_dl')" onblur="acHide('${rid}_dl')">
+        <div class="ac-list" id="${rid}_dl"></div>
       </label>
       <div class="grid2">
         <label class="fld" style="margin-bottom:8px"><span class="lbl">Dosis</span><input class="ing-dosis" id="${rid}_dosis" type="number" step="0.01" placeholder="Ej: 1.5" value="${prefill?prefill.dosis:''}"></label>
@@ -1997,7 +2015,7 @@ function fillIngProduct(rid){
     const map={'Fungicida':FUNGICIDAS,'Insecticida':INSECTICIDAS,'Acaricida':ACARICIDAS,'Fertilizante foliar':FOLIARES,'Coadyuvante':COADYUVANTES};
     list = map[cat]||[];
   }
-  dl.innerHTML=list.map(x=>`<option value="${x.replace(/"/g,'&quot;')}">`).join('');
+  acSetOptions(rid+'_dl', list);
 }
 async function submitPlanItem(){
   const lid=planCtxLoteId || progViewLoteId;
@@ -2050,11 +2068,62 @@ function closeModal(id){ document.getElementById(id).classList.remove('show'); }
 let toastT;
 function toast(m){ const t=document.getElementById('toast'); t.textContent=m; t.classList.add('show'); clearTimeout(toastT); toastT=setTimeout(()=>t.classList.remove('show'),2400); }
 function esc(s){ return (s||'').toString().replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+
+/* Autocompletar táctil — reemplaza <datalist>, que en Safari de iPhone no muestra sugerencias */
+const acOptions={};
+function acSetOptions(dlId, list){ acOptions[dlId]=list||[]; }
+function acRender(inputId, dlId){
+  const input=document.getElementById(inputId), box=document.getElementById(dlId);
+  if(!input||!box) return;
+  const q=input.value.trim().toLowerCase();
+  const all=acOptions[dlId]||[];
+  const matches=(q?all.filter(x=>x.toLowerCase().includes(q)):all).slice(0,30);
+  box.innerHTML = matches.length
+    ? matches.map(x=>`<div class="ac-item" onmousedown="event.preventDefault()" onclick="acPick('${inputId}','${dlId}',this)">${esc(x)}</div>`).join('')
+    : (q ? `<div class="ac-empty">Sin coincidencias en la lista — podés escribir el nombre igual</div>` : '');
+  box.classList.toggle('show', matches.length>0 || !!q);
+}
+function acPick(inputId, dlId, el){
+  document.getElementById(inputId).value = el.textContent;
+  document.getElementById(dlId).classList.remove('show');
+}
+function acShow(inputId, dlId){ acRender(inputId, dlId); }
+function acHide(dlId){ setTimeout(()=>{ const box=document.getElementById(dlId); if(box) box.classList.remove('show'); }, 150); }
 function exportData(){
   const blob=new Blob([JSON.stringify({clientes,fincas,lotes,cosechas,visitas,planes,informesLog},null,2)],{type:'application/json'});
   const a=document.createElement('a'); a.href=URL.createObjectURL(blob);
   a.download='bitacora-campo-'+new Date().toISOString().slice(0,10)+'.json';
   document.body.appendChild(a); a.click(); a.remove(); toast('Datos exportados');
+}
+function importData(event){
+  const file=event.target.files[0]; event.target.value='';
+  if(!file) return;
+  const reader=new FileReader();
+  reader.onload=async ev=>{
+    let data;
+    try{ data=JSON.parse(ev.target.result); }
+    catch(e){ toast('El archivo no es un .json válido'); return; }
+    const keys=['clientes','fincas','lotes','cosechas','visitas','planes','informesLog'];
+    if(!keys.some(k=>Array.isArray(data[k]))){ toast('El archivo no tiene el formato esperado'); return; }
+    const counts=keys.map(k=>`${(data[k]||[]).length} ${k}`).join(', ');
+    askConfirm(`Esto va a REEMPLAZAR todos los datos de este dispositivo por los del archivo (${counts}). ¿Exportaste ya un respaldo de lo que hay acá si lo necesitás? Esta acción no se puede deshacer.`, async ()=>{
+      // borra todo lo guardado actualmente en este dispositivo
+      for(const prefix of ['cliente:','finca:','lote:','cosecha:','visita:','plan:','log:']){
+        for(const k of await store.list(prefix)) await store.del(k);
+      }
+      // escribe los datos importados
+      for(const k of keys){
+        for(const rec of (data[k]||[])){ if(rec && rec.id) await store.set(rec.id, rec); }
+      }
+      clientes=data.clientes||[]; fincas=data.fincas||[]; lotes=data.lotes||[];
+      cosechas=data.cosechas||[]; planes=data.planes||[]; informesLog=data.informesLog||[];
+      visitas=(data.visitas||[]).slice().sort((a,b)=>new Date(b.createdAt)-new Date(a.createdAt));
+      refreshPickers(); renderInicio();
+      toast('Datos importados — '+visitas.length+' visitas cargadas');
+      goto('inicio');
+    });
+  };
+  reader.readAsText(file);
 }
 
 /* INIT */
@@ -2065,7 +2134,7 @@ async function loadAll(prefix){
 }
 (async function init(){
   document.getElementById('headerLogoImg').src = LOGO_ICON_URI;
-  document.getElementById('dl_cultivos').innerHTML = CULTIVOS.map(c=>`<option value="${c}">`).join('');
+  acSetOptions('qa_cultivo_ac', CULTIVOS);
   clientes=await loadAll('cliente:');
   fincas=await loadAll('finca:');
   lotes=await loadAll('lote:');
